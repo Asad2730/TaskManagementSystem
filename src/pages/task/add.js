@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { db } from "../../db/db";
+import { app } from "../../db/db";
 import { addDoc, collection } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploaappytes, getDownloadURL } from "firebase/storage";
 import { useSelector } from "react-redux";
 import { CustomDropdown, CustomTextInput } from "./components/UiInputs";
-
 
 const TaskForm = () => {
   const { user } = useSelector((state) => state.auth);
@@ -47,11 +46,11 @@ const TaskForm = () => {
         if (image) {
           const storage = getStorage();
           const imageRef = ref(storage, `tasks/${image.name}`);
-          await uploadBytes(imageRef, image);
+          await uploaappytes(imageRef, image);
           imageUrl = await getDownloadURL(imageRef);
         }
 
-        await addDoc(collection(db, "tasks"), {
+        await addDoc(collection(app, "tasks"), {
           title,
           description,
           priority,
@@ -77,7 +76,7 @@ const TaskForm = () => {
   const priorityOptions = useMemo(() => ["Low", "Medium", "High"], []);
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
+    <div className="flex justify-center items-center h-screen bg-gray-100 px-4">
       <div className="w-full max-w-lg bg-white rounded-lg shadow-md p-8">
         <h2 className="text-2xl font-bold text-center mb-6">Add New Task</h2>
         {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
@@ -88,6 +87,7 @@ const TaskForm = () => {
             onChange={handleChange}
             placeholder="Title"
             required
+            className="w-full"
           />
           
           <CustomTextInput
@@ -97,6 +97,7 @@ const TaskForm = () => {
             placeholder="Description"
             required
             type="textarea"
+            className="w-full"
           />
           
           <div className="mb-4">
@@ -116,6 +117,7 @@ const TaskForm = () => {
             placeholder="Due Date"
             required
             type="date"
+            className="w-full"
           />
           <CustomDropdown
             id="priority"
@@ -124,6 +126,7 @@ const TaskForm = () => {
             options={priorityOptions}
             placeholder="Priority"
             required
+            className="w-full"
           />
 
           <button

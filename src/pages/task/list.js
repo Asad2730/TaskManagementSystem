@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { db } from "../../db/db";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useSelector } from "react-redux";
-import { CustomTextInput, CustomDropdown } from "./components/UiInputs";  // Assuming correct path
+import { CustomTextInput, CustomDropdown } from "./components/UiInputs"; 
+
 
 const TaskList = () => {
   const { user } = useSelector((state) => state.auth);
@@ -81,9 +82,10 @@ const TaskList = () => {
           onChange={handleFilterChange}
           placeholder="Search by Title/Description"
           required
+          className="w-full sm:w-1/2 md:w-1/3"
         />
       </div>
-      <div className="mb-6 flex gap-4">
+      <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <CustomDropdown
           name="priority"
           value={filters.priority}
@@ -91,6 +93,7 @@ const TaskList = () => {
           options={["", "Low", "Medium", "High"]}
           placeholder="Select Priority"
           required
+          className="w-full sm:w-1/2 md:w-1/4"
         />
         <CustomTextInput
           name="date"
@@ -98,6 +101,7 @@ const TaskList = () => {
           onChange={handleFilterChange}
           type="date"
           required
+          className="w-full sm:w-1/2 md:w-1/4"
         />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
