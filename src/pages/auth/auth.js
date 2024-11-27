@@ -4,11 +4,13 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } f
 import { app } from "../../db/db";
 import { CustomButton, CustomInput } from "./components/customUi";
 import { login } from "../../store/authSlice";
+import { useNavigate } from "react-router-dom";
 
 
 const auth = getAuth(app);
 
 const Auth = () => {
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [isSignUp, setIsSignUp] = useState(true);
@@ -41,16 +43,18 @@ const Auth = () => {
       } else {
         userCredential = await signInWithEmailAndPassword(auth, email, password);
       }
-
+      console.log('userCred',userCredential)
       const user = userCredential.user;
+      console.log('user',user)
       dispatch(login({ email: user.email, uid: user.uid })); 
       alert(isSignUp ? "Account created successfully!" : "Logged in successfully!");
+      navigate('/task')
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [formData, isSignUp, dispatch]);
+  }, [formData, isSignUp, dispatch,navigate]);
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100 px-4 sm:px-6 lg:px-8">

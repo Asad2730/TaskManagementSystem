@@ -33,4 +33,4 @@ export const CustomButton = ({ label, onClick, disabled, loading,type }) => (
   </button>
 );
 
-export default Button;
+
