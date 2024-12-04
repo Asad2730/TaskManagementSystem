@@ -22,6 +22,7 @@ const TaskList = () => {
           ...doc.data(),
           id: doc.id,
         }));
+        console.log('taskList',tasksList)
         setTasks(tasksList);
       } catch (error) {
         console.error("Error fetching tasks:", error);

@@ -1,14 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { app } from "../../db/db";
 import { addDoc, collection, getFirestore } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useSelector } from "react-redux";
 import { CustomDropdown, CustomTextInput } from "./components/UiInputs";
 import { useNavigate } from "react-router-dom";
 
-
-
-const db = getFirestore(app)
+const db = getFirestore(app);
 
 const TaskForm = () => {
   const navigate = useNavigate();
@@ -20,67 +17,78 @@ const TaskForm = () => {
     dueDate: "",
     image: null,
   });
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [showStorageDialog, setShowStorageDialog] = useState(false);
+
 
   useEffect(() => {
-    if (!user) setError("Please login to add tasks.");
+    if (!user) setErrors((prev) => ({ ...prev, global: "Please login to add tasks." }));
   }, [user]);
 
-  const handleChange = useCallback((e) => {
-    const { id, value } = e.target;
-    setFormData((prev) => ({ ...prev, [id]: value }));
-  }, []);
+  const handleChange = (e, key) => {
+    setFormData({ ...formData, [key]: e.target.value });
+    setErrors((prev) => ({ ...prev, [key]: "" }));
+  };
 
   const handleImageChange = useCallback((e) => {
     const file = e.target.files[0];
-    if (file) setFormData((prev) => ({ ...prev, image: file }));
+    if (file) {
+      setFormData((prev) => ({ ...prev, image: file }));
+      setErrors((prev) => ({ ...prev, image: "" }));
+    }
   }, []);
 
-  const handleSubmit = useCallback(
-    async (e) => {
+  const validateFields = () => {
+    const newErrors = {};
+    if (!formData.title) newErrors.title = "Title is required.";
+    if (!formData.description) newErrors.description = "Description is required.";
+    if (!formData.dueDate) newErrors.dueDate = "Due date is required.";
+    if (!formData.image) newErrors.image = "Image is required.";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = useCallback(async (e) => {
       e.preventDefault();
+      if (!validateFields()) return;
+
       const { title, description, dueDate, priority, image } = formData;
-      if (!title || !description || !dueDate || !priority) {
-        setError("Please fill all the fields.");
-        return;
-      }
 
       setLoading(true);
       try {
-        let imageUrl = "https://www.shareicon.net/data/128x128/2015/05/20/41190_empty_256x256.png";
+        let imageUrl = "";
         if (image) {
-          const storage = getStorage();
-          const imageRef = ref(storage, `tasks/${image.name}`);
-          try {
-            await uploadBytes(imageRef, image);
-            imageUrl = await getDownloadURL(imageRef);
-          } catch (imgError) {
-            if (imgError.code === "storage/unauthorized") {
-              setShowStorageDialog(true);
-            } else {
-              console.log('img auth erorr',imgError)
-              setShowStorageDialog(true);
-            }
+          const formData = new FormData();
+        
+
+          const response = await fetch("https://file.io", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await response.json();
+
+          if (data.success) {
+            console.log('IMG HERE', JSON.stringify(data, null, 2));
+            imageUrl = data.link;
+          } else {
+            console.log('Failed to upload image ')
           }
         }
 
-        const res_doc = await addDoc(collection(db, "tasks"), {
+        await addDoc(collection(db, "tasks"), {
           title,
           description,
           priority,
-          dueDate:new Date(dueDate),
+          dueDate: new Date(dueDate),
           imageUrl,
           userId: user?.uid,
           createdAt: new Date(),
         });
-        
-        console.log('res is',res_doc)
+
         setFormData({ title: "", description: "", priority: "Low", dueDate: "", image: null });
         alert("Task added successfully!");
       } catch (err) {
-        setError(`Error submitting task. Please try again later.${err}`);
+        setErrors((prev) => ({ ...prev, global: `Error submitting task: ${err.message}` }));
       } finally {
         setLoading(false);
       }
@@ -89,7 +97,6 @@ const TaskForm = () => {
   );
 
   const buttonLabel = useMemo(() => (loading ? "Submitting..." : "Add Task"), [loading]);
-
   const priorityOptions = useMemo(() => ["Low", "Medium", "High"], []);
 
   return (
@@ -112,23 +119,29 @@ const TaskForm = () => {
           Back
         </span>
         <h2 className="text-2xl font-bold text-center mb-6 text-gray-800">Add New Task</h2>
-        {error && <p className="text-sm text-red-500 mb-4">{error}</p>}
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <CustomTextInput
-            id="title"
-            value={formData.title}
-            onChange={handleChange}
-            placeholder="Task Title"
-            required
-          />
-          <CustomTextInput
-            id="description"
-            value={formData.description}
-            onChange={handleChange}
-            placeholder="Task Description"
-            required
-            type="textarea"
-          />
+        {errors.global && <p className="text-sm text-red-500 mb-4">{errors.global}</p>}
+        <section className="space-y-5">
+          <div>
+            <CustomTextInput
+              id="title"
+              value={formData.title}
+              onChange={(e) => handleChange(e, "title")}
+              placeholder="Task Title"
+              required
+            />
+            {errors.title && <p className="text-sm text-red-500 mt-1">{errors.title}</p>}
+          </div>
+          <div>
+            <CustomTextInput
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleChange(e, "description")}
+              placeholder="Task Description"
+              required
+              type="textarea"
+            />
+            {errors.description && <p className="text-sm text-red-500 mt-1">{errors.description}</p>}
+          </div>
           <div>
             <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
               Add Image
@@ -139,25 +152,30 @@ const TaskForm = () => {
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
               onChange={handleImageChange}
             />
+            {errors.image && <p className="text-sm text-red-500 mt-1">{errors.image}</p>}
           </div>
-          <CustomTextInput
-            id="dueDate"
-            value={formData.dueDate}
-            onChange={handleChange}
-            placeholder="Due Date"
-            required
-            type="date"
-          />
+          <div>
+            <CustomTextInput
+              id="dueDate"
+              value={formData.dueDate}
+              onChange={(e) => handleChange(e, "dueDate")}
+              placeholder="Due Date"
+              required
+              type="date"
+            />
+            {errors.dueDate && <p className="text-sm text-red-500 mt-1">{errors.dueDate}</p>}
+          </div>
           <CustomDropdown
             id="priority"
             value={formData.priority}
-            onChange={handleChange}
+            onChange={(e) => handleChange(e, "priority")}
             options={priorityOptions}
             placeholder="Select Priority"
             required
           />
           <button
             type="submit"
+            onClick={(e)=>handleSubmit(e)}
             className={`w-full py-2 px-4 rounded-md font-medium transition ${
               loading
                 ? "bg-gray-400 cursor-not-allowed text-gray-200"
@@ -167,23 +185,8 @@ const TaskForm = () => {
           >
             {buttonLabel}
           </button>
-        </form>
+        </section>
       </div>
-
-      {showStorageDialog && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg max-w-sm">
-            <h3 className="text-xl font-bold">Storage Limit Reached</h3>
-            <p className="mt-2">Please upgrade your storage plan to save images.</p>
-            <button
-              onClick={() => setShowStorageDialog(false)}
-              className="mt-4 py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white rounded-md"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
